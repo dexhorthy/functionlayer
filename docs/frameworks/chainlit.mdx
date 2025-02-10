@@ -1,0 +1,138 @@
+---
+title: "Chainlit"
+description: "Use Humanlayer with Chainlit"
+icon: "chat"
+---
+
+## Overview
+
+[Chainlit](https://github.com/Chainlit/chainlit) is a Python framework for building chat interfaces. HumanLayer adds human oversight to your Chainlit applications.
+
+## Installation
+
+```bash
+pip install humanlayer chainlit python-dotenv
+```
+
+## Complete Example
+
+Create a customer service chat interface with human oversight:
+
+```python
+import chainlit as cl
+from humanlayer import HumanLayer, ContactChannel, SlackContactChannel
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Initialize with descriptive run ID and contact channel
+hl = HumanLayer(
+    run_id="customer-service-bot",
+    contact_channel=ContactChannel(
+        slack=SlackContactChannel(
+            channel_or_user_id="C123456",
+            context_about_channel_or_user="the support team",
+        )
+    )
+)
+
+# Functions requiring approval
+@hl.require_approval()
+async def issue_refund(order_id: str, amount: float, reason: str) -> str:
+    """Process a refund with human approval"""
+    return f"Refunded ${amount} for order {order_id}"
+
+@hl.require_approval()
+async def escalate_to_manager(ticket_id: str, priority: str) -> str:
+    """Escalate issue to management"""
+    return f"Ticket {ticket_id} escalated to management"
+
+# Human consultation tool
+support_team = hl.human_as_tool(
+    response_options=[
+        {"name": "approve", "title": "Approve Request"},
+        {"name": "deny", "title": "Deny Request"},
+        {"name": "escalate", "title": "Escalate to Manager"},
+    ]
+)
+
+@cl.on_chat_start
+async def start():
+    """Initialize chat session"""
+    await cl.Message(
+        content="Hello! I'm your customer service assistant."
+    ).send()
+
+@cl.on_message
+async def on_message(message: cl.Message):
+    """Handle incoming messages"""
+    msg = message.content.lower()
+    
+    if "refund" in msg:
+        # Example of requiring approval
+        result = await issue_refund(
+            order_id="123",
+            amount=99.99,
+            reason="Customer request"
+        )
+        await cl.Message(content=result).send()
+    
+    elif "help" in msg:
+        # Example of consulting a human
+        response = await support_team(
+            f"Customer needs help with: {msg}\n" +
+            "How should I proceed?"
+        )
+        await cl.Message(content=response).send()
+    
+    else:
+        await cl.Message(
+            content="I'm here to help with refunds and support requests."
+        ).send()
+```
+
+## Key Features
+
+1. **Human Oversight**
+   - Require approval for sensitive operations
+   - Consult support team when needed
+   - Track approvals with run IDs
+
+2. **Structured Responses**
+   - Define clear response options
+   - Guide human decision-making
+   - Maintain consistent workflows
+
+3. **Real-time Chat**
+   - Async/await support
+   - Streaming responses
+   - Session management
+
+## Running the Example
+
+1. Set environment variables:
+```bash
+OPENAI_API_KEY=your-openai-key
+HUMANLAYER_API_KEY=your-humanlayer-key
+```
+
+2. Create `chainlit.md` for chat UI customization:
+```markdown
+# Customer Service Assistant
+
+Welcome! I can help with:
+- Processing refunds
+- Escalating issues
+- General support
+```
+
+3. Run the app:
+```bash
+chainlit run app.py
+```
+
+## Next Steps
+
+- [Configure contact channels](/channels/introduction)
+- [Customize response options](/core/customize-response-options)
+- [See complete example](https://github.com/humanlayer/humanlayer/tree/main/examples/chainlit)

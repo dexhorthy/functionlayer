@@ -83,7 +83,9 @@
         "frameworks/open-ai",
         "frameworks/langchain",
         "frameworks/crewai",
-        "frameworks/controlflow"
+        "frameworks/controlflow",
+        "frameworks/chainlit",
+        "frameworks/vercel-ai-sdk"
       ]
     },
     {
